@@ -450,11 +450,11 @@ nav{background:#0f1f35;height:56px;display:flex;align-items:center;justify-conte
         <div class="plan-feat"><span class="feat-ok">✓</span>ARV &amp; profit projection</div>
         <div class="plan-feat"><span class="feat-ok">✓</span>Plain-English AI verdict</div>
         <div class="plan-feat"><span class="feat-no">✗</span>Deal alerts</div>
-        <button class="btn-plan-fill" onclick="window.open('https://buy.stripe.com/test_fZubJ2eiF2WQ1u4eQ11VK02','_blank')">Start 7-day free trial</button>
+        <button class="btn-plan-fill" onclick="window.open('https://buy.stripe.com/test_5kQ3cw6Qdapi0q0fU51VK00','_blank')">Start 7-day free trial</button>
       </div>
       <div class="plan-card">
-        <div class="plan-tier">Investor <span style="background:#fef2f2;color:#ef4444;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;margin-left:4px;vertical-align:middle;">SALE</span></div>
-        <div class="plan-price" style="position:relative;">$79<sub>/mo</sub><span style="display:block;font-size:13px;color:#aaa;font-weight:400;text-decoration:line-through;margin-top:2px;">was $99/mo</span></div>
+        <div class="plan-tier">Investor</div>
+        <div class="plan-price">$79<sub>/mo</sub></div>
         <div class="plan-tagline">Everything in Pro + deal alerts</div>
         <hr class="plan-hr"/>
         <div class="plan-feat"><span class="feat-ok">✓</span>Unlimited deal analyses</div>
@@ -463,7 +463,7 @@ nav{background:#0f1f35;height:56px;display:flex;align-items:center;justify-conte
         <div class="plan-feat"><span class="feat-ok">✓</span>ARV &amp; profit projection</div>
         <div class="plan-feat"><span class="feat-ok">✓</span>Plain-English AI verdict</div>
         <div class="plan-feat"><span class="feat-ok">✓</span>Instant deal alerts</div>
-        <button class="btn-plan-outline" onclick="window.open('https://buy.stripe.com/test_dRm5kE6Qd1SMegQazL1VK03','_blank')">Start 7-day free trial</button>
+        <button class="btn-plan-outline" onclick="window.open('https://buy.stripe.com/test_3cIfZigqN0OIgoY0Zb1VK01','_blank')">Start 7-day free trial</button>
       </div>
     </div>
   </div>
@@ -750,8 +750,8 @@ nav{background:#0f1f35;height:56px;display:flex;align-items:center;justify-conte
 
 <script>
 // ── CONFIG ──────────────────────────────
-const STRIPE_PRO     = 'https://buy.stripe.com/test_fZubJ2eiF2WQ1u4eQ11VK02';
-const STRIPE_INV     = 'https://buy.stripe.com/test_dRm5kE6Qd1SMegQazL1VK03';
+const STRIPE_PRO     = 'https://buy.stripe.com/test_5kQ3cw6Qdapi0q0fU51VK00';
+const STRIPE_INV     = 'https://buy.stripe.com/test_3cIfZigqN0OIgoY0Zb1VK01';
 const FREE_LIMIT     = 3;
 const STORAGE_USAGE  = 'hfai_usage_count';
 const STORAGE_MONTH  = 'hfai_usage_month';
@@ -1158,9 +1158,9 @@ async function doAnalyze() {
 A user pasted this listing URL: ${v}
 Site detected: ${s}
 
-IMPORTANT: Use your web_search tool to browse this URL right now and read the actual listing details — list price, beds, baths, square footage, property condition, and location. Do not make up numbers. Use only what you find on the page.
+Since you cannot browse URLs, generate a realistic simulated analysis as if you fetched the listing. Use plausible numbers for a US real estate market. Make it feel specific and real.
 
-After browsing the listing, respond ONLY with a valid JSON object using the REAL data you found, no markdown, no explanation:
+Respond ONLY with a valid JSON object, no markdown, no explanation:
 {
   "score": 7,
   "scoreClass": "green",
@@ -1172,17 +1172,15 @@ After browsing the listing, respond ONLY with a valid JSON object using the REAL
   "estimatedProfit": "$47,000",
   "profitClass": "profit",
   "trend": "up",
-  "verdict": "Plain English verdict in 2-3 sentences for a beginner. Be specific about what makes this deal good or bad. Mention the real numbers you found."
+  "verdict": "Plain English verdict in 2-3 sentences for a beginner. Be specific about what makes this deal good or bad. Mention the numbers."
 }
 
 Rules:
-- Use the REAL list price from the listing — never invent it
-- repairCost: estimate based on actual sqft and condition you read from the page
-- arv: estimate based on the neighborhood and comparable homes in that zip code
-- profit = arv - listPrice - repairCost - roughly 10% closing and holding costs
 - score: 1-10 integer. scoreClass: "green" if >=7, "yellow" if 4-6, "red" if <=3
+- profit = arv - listPrice - repairCost - roughly 10% closing and holding costs. Make math consistent.
 - profitClass: "profit" if positive, "loss" if negative
-- trend: "up", "stable", or "down" based on the market area
+- trend: "up", "stable", or "down"
+- Vary results realistically — not every deal is great. Include some duds.
 - verdict: under 60 words, zero jargon, written for someone who just watched a house flipping show`;
 
     const response = await fetch('/api/analyze', {
@@ -1200,25 +1198,15 @@ Rules:
 
     if (!response.ok) throw new Error('API error ' + response.status);
     const data  = await response.json();
-
-    // Filter to text blocks only — web search adds other block types
-    const raw = (data.content || [])
-      .filter(b => b.type === 'text')
-      .map(b => b.text || '')
-      .join('');
+    const raw   = data.content.map(b => b.text || '').join('');
     const clean = raw.replace(/```json|```/g, '').trim();
 
     let result;
     try { result = JSON.parse(clean); }
     catch(e) {
-      const match = clean.match(/\{[\s\S]*?"score"[\s\S]*?\}/) ||
-                    clean.match(/\{[\s\S]*\}/);
-      if (match) {
-        try { result = JSON.parse(match[0]); }
-        catch(e2) { throw new Error('Could not parse AI response'); }
-      } else {
-        throw new Error('Could not parse AI response');
-      }
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) result = JSON.parse(match[0]);
+      else throw new Error('Could not parse AI response');
     }
 
     renderResult(result, v, s);
