@@ -113,6 +113,18 @@ nav{background:#0f1f35;height:56px;display:flex;align-items:center;justify-conte
 .url-input{flex:1;padding:10px 14px;border-radius:8px;border:1px solid #e0e0dc;background:#f9f9f7;font-size:13px;color:#1a1a1a;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.15s;}
 .url-input:focus{border-color:#f97316;background:#fff;}
 .url-input::placeholder{color:#bbb;font-size:12px;}
+.manual-toggle{margin-top:12px;font-size:12px;color:#f97316;cursor:pointer;display:inline-flex;align-items:center;gap:5px;user-select:none;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}
+.manual-toggle:hover{opacity:0.8;}
+.manual-fields{display:none;margin-top:12px;padding:14px;background:#f9f9f7;border:1px solid #e8e8e6;border-radius:10px;}
+.manual-fields.open{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.mf-group{display:flex;flex-direction:column;gap:3px;}
+.mf-group.full{grid-column:1/-1;}
+.mf-label{font-size:11px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;}
+.mf-input{width:100%;padding:8px 10px;border-radius:7px;border:1px solid #e0e0dc;background:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;}
+.mf-input:focus{border-color:#f97316;}
+.mf-note{grid-column:1/-1;font-size:11px;color:#aaa;line-height:1.5;margin-top:2px;}
+.mf-btn{grid-column:1/-1;background:#f97316;color:#fff;border:none;padding:10px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:2px;}
+.mf-btn:hover{background:#ea6a0a;}
 .btn-analyze{background:#f97316;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
 .btn-analyze:hover{background:#ea6a0a;}
 .detect-ok{display:none;align-items:center;gap:5px;margin-top:8px;font-size:12px;color:#22c55e;}
@@ -640,6 +652,55 @@ nav{background:#0f1f35;height:56px;display:flex;align-items:center;justify-conte
         </div>
       </div>
 
+      <button class="manual-toggle" id="manual-toggle-btn" onclick="toggleManual()">＋ Add property details for more accurate results (optional)</button>
+      <div class="manual-fields" id="manual-fields">
+        <div class="mf-group full">
+          <div class="mf-label">Full Address</div>
+          <input class="mf-input" id="mf-address" placeholder="e.g. 123 Main St, Mission Viejo, CA 92694" />
+        </div>
+        <div class="mf-group">
+          <div class="mf-label">List Price</div>
+          <input class="mf-input" id="mf-price" placeholder="e.g. $485,000" />
+        </div>
+        <div class="mf-group">
+          <div class="mf-label">Square Footage</div>
+          <input class="mf-input" id="mf-sqft" placeholder="e.g. 1,850" />
+        </div>
+        <div class="mf-group">
+          <div class="mf-label">Bedrooms</div>
+          <select class="mf-input" id="mf-beds">
+            <option value="">Select...</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option><option>9+</option>
+          </select>
+        </div>
+        <div class="mf-group">
+          <div class="mf-label">Bathrooms</div>
+          <select class="mf-input" id="mf-baths">
+            <option value="">Select...</option>
+            <option>1</option><option>1.5</option><option>2</option><option>2.5</option>
+            <option>3</option><option>3.5</option><option>4</option><option>4.5</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option><option>9+</option>
+          </select>
+        </div>
+        <div class="mf-group">
+          <div class="mf-label">Property Condition</div>
+          <select class="mf-input" id="mf-condition">
+            <option value="">Select...</option>
+            <option value="Good — mostly cosmetic updates needed">Good — cosmetic only</option>
+            <option value="Fair — kitchen/bath updates needed">Fair — needs updating</option>
+            <option value="Poor — full renovation required">Poor — full renovation</option>
+            <option value="Distressed — major structural issues">Distressed — major issues</option>
+          </select>
+        </div>
+        <div class="mf-group">
+          <div class="mf-label">Year Built</div>
+          <input class="mf-input" id="mf-year" placeholder="e.g. 1978" />
+        </div>
+        <p class="mf-note">Filling in these details gives Claude real numbers to work with — results will be significantly more accurate.</p>
+        <button class="mf-btn" onclick="doAnalyze()">Analyze deal</button>
+      </div>
+
       <div class="loading-box" id="loading-box">
         <div class="spinner"></div>
         <p id="loading-text">Analyzing your deal...</p>
@@ -1112,6 +1173,15 @@ function updateUsage() {
 }
 
 // ── REAL AI ANALYSIS ────────────────────
+function toggleManual() {
+  const fields = document.getElementById('manual-fields');
+  const btn = document.getElementById('manual-toggle-btn');
+  fields.classList.toggle('open');
+  btn.textContent = fields.classList.contains('open')
+    ? '− Hide property details'
+    : '＋ Add property details for more accurate results (optional)';
+}
+
 async function doAnalyze() {
   const v      = document.getElementById('url-input').value.trim();
   const errEl  = document.getElementById('detect-err');
@@ -1153,12 +1223,31 @@ async function doAnalyze() {
   }, 1800);
 
   try {
+    // Collect optional manual fields
+    const mfAddress = (document.getElementById('mf-address')?.value || '').trim();
+    const mfPrice   = (document.getElementById('mf-price')?.value || '').trim();
+    const mfSqft    = (document.getElementById('mf-sqft')?.value || '').trim();
+    const mfBeds    = (document.getElementById('mf-beds')?.value || '').trim();
+    const mfBaths   = (document.getElementById('mf-baths')?.value || '').trim();
+    const mfCond    = (document.getElementById('mf-condition')?.value || '').trim();
+    const mfYear    = (document.getElementById('mf-year')?.value || '').trim();
+    const hasManual = mfAddress || mfPrice || mfSqft || mfBeds || mfCond;
+
+    const manualData = hasManual ? [
+      mfAddress ? 'Full Address: ' + mfAddress : '',
+      mfPrice   ? 'List Price: ' + mfPrice : '',
+      mfSqft    ? 'Square Footage: ' + mfSqft + ' sqft' : '',
+      mfBeds    ? 'Bedrooms: ' + mfBeds : '',
+      mfBaths   ? 'Bathrooms: ' + mfBaths : '',
+      mfCond    ? 'Condition: ' + mfCond : '',
+      mfYear    ? 'Year Built: ' + mfYear : '',
+    ].filter(Boolean).join('\n') : '';
+
     const prompt = `You are HouseFlipAI, an expert real estate flip analyzer for beginner house flippers.
 
 A user pasted this listing URL: ${v}
 Site detected: ${s}
-
-Since you cannot browse URLs, generate a realistic simulated analysis as if you fetched the listing. Use plausible numbers for a US real estate market. Make it feel specific and real.
+${hasManual ? '\nPROPERTY DETAILS (provided by user — use these exact numbers):\n' + manualData : '\nNo property details provided — estimate based on the URL and US market norms.'}
 
 Respond ONLY with a valid JSON object, no markdown, no explanation:
 {
@@ -1176,6 +1265,7 @@ Respond ONLY with a valid JSON object, no markdown, no explanation:
 }
 
 Rules:
+- ${hasManual ? 'Use the EXACT list price the user provided. Do not change it.' : 'Use plausible numbers for a US real estate market.'}
 - score: 1-10 integer. scoreClass: "green" if >=7, "yellow" if 4-6, "red" if <=3
 - profit = arv - listPrice - repairCost - roughly 10% closing and holding costs. Make math consistent.
 - profitClass: "profit" if positive, "loss" if negative
