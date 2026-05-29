@@ -1200,15 +1200,25 @@ Rules:
 
     if (!response.ok) throw new Error('API error ' + response.status);
     const data  = await response.json();
-    const raw   = data.content.map(b => b.text || '').join('');
+
+    // Filter to text blocks only — web search adds other block types
+    const raw = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text || '')
+      .join('');
     const clean = raw.replace(/```json|```/g, '').trim();
 
     let result;
     try { result = JSON.parse(clean); }
     catch(e) {
-      const match = clean.match(/\{[\s\S]*\}/);
-      if (match) result = JSON.parse(match[0]);
-      else throw new Error('Could not parse AI response');
+      const match = clean.match(/\{[\s\S]*?"score"[\s\S]*?\}/) ||
+                    clean.match(/\{[\s\S]*\}/);
+      if (match) {
+        try { result = JSON.parse(match[0]); }
+        catch(e2) { throw new Error('Could not parse AI response'); }
+      } else {
+        throw new Error('Could not parse AI response');
+      }
     }
 
     renderResult(result, v, s);
