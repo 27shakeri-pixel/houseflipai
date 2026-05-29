@@ -1158,9 +1158,9 @@ async function doAnalyze() {
 A user pasted this listing URL: ${v}
 Site detected: ${s}
 
-Since you cannot browse URLs, generate a realistic simulated analysis as if you fetched the listing. Use plausible numbers for a US real estate market. Make it feel specific and real.
+IMPORTANT: Use your web_search tool to browse this URL right now and read the actual listing details — list price, beds, baths, square footage, property condition, and location. Do not make up numbers. Use only what you find on the page.
 
-Respond ONLY with a valid JSON object, no markdown, no explanation:
+After browsing the listing, respond ONLY with a valid JSON object using the REAL data you found, no markdown, no explanation:
 {
   "score": 7,
   "scoreClass": "green",
@@ -1172,15 +1172,17 @@ Respond ONLY with a valid JSON object, no markdown, no explanation:
   "estimatedProfit": "$47,000",
   "profitClass": "profit",
   "trend": "up",
-  "verdict": "Plain English verdict in 2-3 sentences for a beginner. Be specific about what makes this deal good or bad. Mention the numbers."
+  "verdict": "Plain English verdict in 2-3 sentences for a beginner. Be specific about what makes this deal good or bad. Mention the real numbers you found."
 }
 
 Rules:
+- Use the REAL list price from the listing — never invent it
+- repairCost: estimate based on actual sqft and condition you read from the page
+- arv: estimate based on the neighborhood and comparable homes in that zip code
+- profit = arv - listPrice - repairCost - roughly 10% closing and holding costs
 - score: 1-10 integer. scoreClass: "green" if >=7, "yellow" if 4-6, "red" if <=3
-- profit = arv - listPrice - repairCost - roughly 10% closing and holding costs. Make math consistent.
 - profitClass: "profit" if positive, "loss" if negative
-- trend: "up", "stable", or "down"
-- Vary results realistically — not every deal is great. Include some duds.
+- trend: "up", "stable", or "down" based on the market area
 - verdict: under 60 words, zero jargon, written for someone who just watched a house flipping show`;
 
     const response = await fetch('/api/analyze', {
