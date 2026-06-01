@@ -166,6 +166,25 @@ nav{background:#0f1f35;height:56px;display:flex;align-items:center;justify-conte
 .verdict-block{background:#fff8f4;border-left:3px solid #f97316;border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:14px;}
 .verdict-label{font-size:10px;font-weight:500;color:#f97316;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;}
 .verdict-block p{font-size:13px;color:#555;line-height:1.65;}
+.detail-btn{margin-top:10px;font-size:12px;color:#f97316;background:none;border:1px solid #f97316;border-radius:6px;padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;}
+.detail-btn:hover{background:#fff8f4;}
+.detail-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;}
+.detail-modal-bg.show{display:flex;}
+.detail-modal{background:#fff;border-radius:16px;max-width:620px;width:90%;max-height:85vh;overflow-y:auto;padding:28px;position:relative;}
+.detail-modal h2{font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:4px;}
+.detail-modal .dm-sub{font-size:13px;color:#888;margin-bottom:20px;}
+.dm-section{margin-bottom:18px;}
+.dm-section h4{font-size:11px;font-weight:600;color:#f97316;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;}
+.dm-section p{font-size:13px;color:#444;line-height:1.7;}
+.dm-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #f4f4f2;color:#444;}
+.dm-row:last-child{border-bottom:none;}
+.dm-row span:last-child{font-weight:500;color:#1a1a1a;}
+.dm-close{position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;line-height:1;}
+.dm-close:hover{color:#1a1a1a;}
+.dm-risk{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;margin:3px 3px 3px 0;}
+.dm-risk.low{background:#f0fdf4;color:#16a34a;}
+.dm-risk.med{background:#fff7ed;color:#ea580c;}
+.dm-risk.high{background:#fef2f2;color:#dc2626;}
 .result-actions{display:flex;gap:8px;}
 .btn-save{background:transparent;color:#888;border:1px solid #e0e0dc;padding:8px 16px;border-radius:7px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .btn-save:hover{background:#f5f5f3;}
@@ -736,9 +755,48 @@ nav{background:#0f1f35;height:56px;display:flex;align-items:center;justify-conte
           <div class="verdict-label">AI verdict</div>
           <p id="verdict-text"></p>
         </div>
+        <button class="detail-btn" onclick="openDetail()">📋 See full analysis breakdown</button>
         <div class="result-actions">
           <button class="btn-save" onclick="saveDeal()">Save this deal</button>
           <span class="ai-badge">Powered by Claude AI</span>
+        </div>
+      </div>
+
+      <!-- DETAIL MODAL -->
+      <div class="detail-modal-bg" id="detail-modal-bg" onclick="if(event.target===this)closeDetail()">
+        <div class="detail-modal">
+          <button class="dm-close" onclick="closeDetail()">×</button>
+          <h2 id="dm-title">Full Analysis</h2>
+          <div class="dm-sub" id="dm-sub"></div>
+
+          <div class="dm-section">
+            <h4>📊 Financial Breakdown</h4>
+            <div class="dm-row"><span>List Price</span><span id="dm-price"></span></div>
+            <div class="dm-row"><span>Estimated Repair Cost</span><span id="dm-repair"></span></div>
+            <div class="dm-row"><span>Closing & Holding Costs (~10%)</span><span id="dm-fees"></span></div>
+            <div class="dm-row"><span>After Repair Value (ARV)</span><span id="dm-arv"></span></div>
+            <div class="dm-row" style="font-weight:600;"><span>Estimated Profit</span><span id="dm-profit2"></span></div>
+          </div>
+
+          <div class="dm-section">
+            <h4>🔧 Repair Cost Breakdown</h4>
+            <div id="dm-repairs"></div>
+          </div>
+
+          <div class="dm-section">
+            <h4>🏘️ Market & ARV Analysis</h4>
+            <p id="dm-market"></p>
+          </div>
+
+          <div class="dm-section">
+            <h4>⚠️ Risk Factors</h4>
+            <div id="dm-risks"></div>
+          </div>
+
+          <div class="dm-section">
+            <h4>💡 Recommendation</h4>
+            <p id="dm-rec"></p>
+          </div>
         </div>
       </div>
 
@@ -1209,7 +1267,7 @@ async function doAnalyze() {
 
   const lb = document.getElementById('loading-box');
   const msgs = [
-    'Fetching listing details from ' + s + '...',
+    v ? 'Fetching listing details from ' + s + '...' : 'Reading property details...',
     'Running AI flip analysis...',
     'Calculating repair costs & ARV...',
     'Generating your verdict...'
@@ -1261,15 +1319,30 @@ Respond ONLY with a valid JSON object, no markdown, no explanation:
   "estimatedProfit": "$47,000",
   "profitClass": "profit",
   "trend": "up",
-  "verdict": "Plain English verdict in 2-3 sentences for a beginner. Be specific about what makes this deal good or bad. Mention the numbers."
+  "verdict": "Plain English verdict in 2-3 sentences for a beginner. Be specific about what makes this deal good or bad. Mention the numbers.",
+  "fees": "$24,700",
+  "repairs": [
+    {"item": "Kitchen renovation", "cost": "$18,000"},
+    {"item": "Bathrooms (2)", "cost": "$12,000"},
+    {"item": "Flooring throughout", "cost": "$8,000"}
+  ],
+  "market": "2-3 sentence explanation of the local market, why the ARV was estimated at that number, and what comparable homes have sold for nearby.",
+  "risks": [
+    {"label": "Foundation check needed", "level": "high"},
+    {"label": "Dated electrical panel", "level": "med"},
+    {"label": "Strong buyer demand in area", "level": "low"}
+  ],
+  "recommendation": "2-3 sentences on what the investor should do next — what to inspect, what to offer, what exit strategy makes sense."
 }
 
 Rules:
 - ${hasManual ? 'Use the EXACT list price the user provided. Do not change it.' : 'Use plausible numbers for a US real estate market.'}
 - score: 1-10 integer. scoreClass: "green" if >=7, "yellow" if 4-6, "red" if <=3
-- profit = arv - listPrice - repairCost - roughly 10% closing and holding costs. Make math consistent.
+- profit = arv - listPrice - repairCost - fees. fees = roughly 10% of listPrice. Make ALL math consistent and accurate.
 - profitClass: "profit" if positive, "loss" if negative
 - trend: "up", "stable", or "down"
+- repairs: list 4-6 specific line items that make up the repairCost total. They must add up to repairCost.
+- risks: 3-5 risk factors. level must be "low", "med", or "high"
 - Vary results realistically — not every deal is great. Include some duds.
 - verdict: under 60 words, zero jargon, written for someone who just watched a house flipping show`;
 
@@ -1315,6 +1388,51 @@ Rules:
     errBox.style.display = 'block';
     console.error('HouseFlipAI error:', err);
   }
+}
+
+function openDetail() {
+  const d = window._lastResult;
+  if (!d) return;
+  document.getElementById('dm-title').textContent = d.title || 'Full Analysis';
+  document.getElementById('dm-sub').textContent = (d.listPrice || '') + ' · ' + (d.arv ? 'ARV ' + d.arv : '') + ' · Score ' + d.score + '/10';
+  document.getElementById('dm-price').textContent = d.listPrice || '—';
+  document.getElementById('dm-repair').textContent = d.repairCost || '—';
+  document.getElementById('dm-fees').textContent = d.fees || '~10% of purchase';
+  document.getElementById('dm-arv').textContent = d.arv || '—';
+  const p2 = document.getElementById('dm-profit2');
+  p2.textContent = d.estimatedProfit || '—';
+  p2.style.color = d.profitClass === 'loss' ? '#dc2626' : '#16a34a';
+
+  // Repairs breakdown
+  const repairsEl = document.getElementById('dm-repairs');
+  if (d.repairs && d.repairs.length) {
+    repairsEl.innerHTML = d.repairs.map(r =>
+      '<div class="dm-row"><span>' + r.item + '</span><span>' + r.cost + '</span></div>'
+    ).join('');
+  } else {
+    repairsEl.innerHTML = '<p style="font-size:13px;color:#888;">Breakdown not available.</p>';
+  }
+
+  document.getElementById('dm-market').textContent = d.market || 'Market analysis not available.';
+
+  // Risks
+  const risksEl = document.getElementById('dm-risks');
+  if (d.risks && d.risks.length) {
+    risksEl.innerHTML = d.risks.map(r =>
+      '<span class="dm-risk ' + (r.level || 'med') + '">' + r.label + '</span>'
+    ).join('');
+  } else {
+    risksEl.innerHTML = '<p style="font-size:13px;color:#888;">No specific risks flagged.</p>';
+  }
+
+  document.getElementById('dm-rec').textContent = d.recommendation || d.verdict || '';
+  document.getElementById('detail-modal-bg').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  document.getElementById('detail-modal-bg').classList.remove('show');
+  document.body.style.overflow = '';
 }
 
 function renderResult(d, url, site) {
