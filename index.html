@@ -1479,17 +1479,26 @@ function renderSavedDeals() {
     container.innerHTML = '<div style="font-size:12px;color:#bbb;padding:16px 0;">Your analyzed deals will appear here after you save them</div>';
     return;
   }
-  container.innerHTML = savedDeals.slice(0, 6).map(d => {
+  container.innerHTML = savedDeals.slice(0, 6).map((d, i) => {
     const profColor = d.profitClass === 'profit' ? '#16a34a' : '#dc2626';
     const badgeBg   = d.profitClass === 'profit' ? '#f0fdf4' : '#fef2f2';
-    const shortUrl  = d.url.length > 48 ? d.url.slice(0, 48) + '\u2026' : d.url;
+    const label     = d.url ? (d.url.length > 48 ? d.url.slice(0, 48) + '\u2026' : d.url) : (d.title || 'Manual entry');
     const dateStr   = d.ts ? new Date(d.ts).toLocaleDateString() : '';
-    return '<div class="deal-card"><div><div class="deal-address">' + shortUrl + '</div>' +
-      '<div class="deal-meta">' + (d.site||'Unknown') + ' \u00b7 ' + d.listPrice + (dateStr ? ' \u00b7 ' + dateStr : '') + '</div></div>' +
-      '<div style="text-align:right"><div class="deal-profit" style="color:' + profColor + '">' + d.estimatedProfit + '</div>' +
+    return '<div class="deal-card" onclick="openSavedDetail(' + i + ')" title="Click to see full analysis">' +
+      '<div style="flex:1;min-width:0"><div class="deal-address">' + label + '</div>' +
+      '<div class="deal-meta">' + (d.site||'Unknown') + ' \u00b7 ' + d.listPrice + (dateStr ? ' \u00b7 ' + dateStr : '') + '</div>' +
+      '<div style="font-size:11px;color:#bbb;margin-top:3px;">Click to view full breakdown</div></div>' +
+      '<div style="text-align:right;flex-shrink:0;margin-left:12px"><div class="deal-profit" style="color:' + profColor + '">' + d.estimatedProfit + '</div>' +
       '<span class="deal-badge" style="background:' + badgeBg + ';color:' + profColor + '">Score ' + d.score + '/10</span>' +
       '</div></div>';
   }).join('');
+}
+
+function openSavedDetail(index) {
+  const d = savedDeals[index];
+  if (!d) return;
+  window._lastResult = d;
+  openDetail();
 }
 
 // ── ALERT SETTINGS ──────────────────────
